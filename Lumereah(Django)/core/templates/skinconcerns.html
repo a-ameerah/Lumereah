@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Skin Concerns</title>
+</head>
+<body>
+    <form method="POST" action="{% url 'skin_concern' %}">
+    {% csrf_token %}
+    
+    <label for="skinconcerns">Do you have any particular skin concerns?</label><br>
+    <input type="text" name="skinconcerns" id="skinconcerns" placeholder="e.g. Hyperpigmentation, Whiteheads etc.">
+    <button for="skinconcerns", type="submit" >Enter</button>
+    </form>
+    
+</body>
+</html>

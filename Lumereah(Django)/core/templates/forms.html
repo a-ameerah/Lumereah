@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIRA'S SKINCARE BOT</title>
+</head>
+<body>
+    <form method="post" action="{% url 'show_form' %}">
+    {% csrf_token %}
+    <label> How does your skin feel a few hours after washing your face (without any products)?</label><br>
+        <input type ="radio", name = "q1" , value = "A">Shiny or greasy all over<br>
+        <input type ="radio", name = "q1" , value = "B">Tight or flaky<br>
+        <input type ="radio", name = "q1" , value = "C">Oily in some spots, dry in others<br>
+        <input type ="radio", name = "q1" , value = "D">Comfortable and balanced<br>
+        <input type ="radio", name = "q1" , value = "E">Stings or gets red easily<br>
+    <br>
+    <label>How often do you get acne or clogged pores?</label><br>
+        <input type ="radio", name = "q2" , value = "A">Very often<br>
+        <input type ="radio", name = "q2" , value = "B">Rarely, but skin feels dry<br>
+        <input type ="radio", name = "q2" , value = "C">Often in the T-zone(Eye, Nose and Mouth) only<br>
+        <input type ="radio", name = "q2" , value = "D">Not much<br>
+        <input type ="radio", name = "q2" , value = "E">Skin breaks out from new products easily<br>
+    <br>
+    <label>What happens when you apply moisturizer?</label><br>
+        <input type ="radio", name = "q3" , value = "A">My face gets greasy quickly<br>
+        <input type ="radio", name = "q3" , value = "B">It still feels dry or tight<br>
+        <input type ="radio", name = "q3" , value = "C">Some areas are fine, others get oily<br>
+        <input type ="radio", name = "q3" , value = "D">Feels nice and smooth all over<br>
+        <input type ="radio", name = "q3" , value = "E">Sometimes it stings or turns red<br>
+    <br>
+    <label>How does your skin react to new products?</label><br>
+        <input type ="radio", name = "q4" , value = "A">Fine, unless it's very oily<br>
+        <input type ="radio", name = "q4" , value = "B">Never absorbs enough, feels tight<br>
+        <input type ="radio", name = "q4" , value = "C">Some parts are okay, others get irritated<br>
+        <input type ="radio", name = "q4" , value = "D">No big reactions<br>
+        <input type ="radio", name = "q4" , value = "E">Easily irritated or red<br>
+    <br>
+    <label>How does your T-zone (forehead, nose, chin) usually look?</label><br>
+        <input type ="radio", name = "q5" , value = "A">Always shinyy<br>
+        <input type ="radio", name = "q5" , value = "B">Dry and dull<br>
+        <input type ="radio", name = "q5" , value = "C">Shiny while other areas feel dry<br>
+        <input type ="radio", name = "q5" , value = "D">Just normal<br>
+        <input type ="radio", name = "q5" , value = "E">Red or itchy sometimes<br>
+    <br>
+    <button type="submit">Click here to submit!</button>
+    </form>
+        
+        
+    
+    
+    
+
+
+    </body>
+</body>
+</html>

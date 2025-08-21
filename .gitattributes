@@ -1,0 +1,2 @@
+*.bin !text !filter !merge !diff
+*.pickle !text !filter !merge !diff
