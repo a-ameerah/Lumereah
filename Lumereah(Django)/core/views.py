@@ -6,8 +6,7 @@ import csv
 import random
 from openai import OpenAI
 import pandas as pd 
-from langchain_experimental.agents import create_csv_agent
-from langchain.llms import OpenAI
+
 import os
 from dotenv import load_dotenv
 import chromadb
@@ -15,16 +14,20 @@ from chromadb.utils import embedding_functions
 
 from transformers import pipeline
 import torch
+from django.shortcuts import render, redirect
+from django.contrib.auth import login
+from .forms import SignUpForm
+from .forms import ProfileForm
+from io import StringIO
 
-model_id = "openai/gpt-oss-20b"
 
-pipe = pipeline(
-    "text-generation",
-    model=model_id,
-    torch_dtype="auto",
-    device_map="auto",
-)
 # Create your views here.
+
+api_key = os.getenv("OPENAI_API_KEY")
+
+client = OpenAI(api_key=api_key)
+
+
 
 def age(request):
     if request.method == 'POST':
@@ -79,7 +82,85 @@ def skin_concern(request):
     
     return render(request, "skinconcerns.html")
 
+def budget(request):
+    if request.method == "POST":
+        budget = request.POST.get("budget")
+        request.session['budget'] = budget
+        return redirect(my_recommendations)
+        
     
+    
+    return render(request, "budget.html")
+
+
+hf_ef = embedding_functions.OpenAIEmbeddingFunction(
+    api_key=os.getenv("OPENAI_API_KEY"),
+    model_name="text-embedding-3-small"
+)
+def load_documents_from_directory(directory_path):
+    print(f"==== Loading documents from {directory_path} ====")
+    file_count = 0
+    row_count = 0
+    
+    documents = []
+    for filename in os.listdir(directory_path):
+        with open( os.path.join(directory_path, filename), "r", encoding="utf-8") as file:
+            if filename.endswith(".csv"):
+                csv_content = file.read()
+                csv_file = StringIO(csv_content)
+                reader = csv.DictReader(csv_file)
+                file_count += 1
+
+                for i, row in enumerate(reader):
+
+                    row_text = "\n".join(f"{key}: {value}" for key, value in row.items())
+                    documents.append({
+                            "id": f"{filename}_row{i+1}",
+                            "text": row_text
+                        })
+                    
+    print(f"Processed {file_count} CSV files with  total rows")
+    return documents
+
+directory_path = r"C:\Users\AMEERAH ADISA\Desktop\product_recommendations"
+documents_1 = load_documents_from_directory(directory_path)
+print(f"Loaded {len(documents_1)} documents")
+
+
+
+def split_text(text, chunk_size=1000, chunk_overlap=20):
+    chunks = []
+    start = 0
+    while start < len(text):
+        end = start + chunk_size
+        chunks.append(text[start:end])
+        start = end - chunk_overlap
+    return chunks
+
+
+chunked_documents = []
+for doc in documents_1:
+    chunks = split_text(doc["text"]) 
+    for i, chunk in enumerate(chunks):
+        chunked_documents.append({
+            "id": f"{doc['id']}_chunk{i+1}",
+            "text": chunk
+        })
+
+
+print(len(chunked_documents))
+
+
+chroma_client = chromadb.PersistentClient(path="chroma_storage")
+chroma_client.delete_collection(name="product_list")
+collection_name = "product_list"
+collection = chroma_client.get_or_create_collection(
+    name = collection_name, embedding_function=hf_ef
+)
+collection.add(
+    documents=[doc["text"] for doc in chunked_documents],
+    ids=[doc["id"] for doc in chunked_documents]
+)
 
 def my_recommendations(request):
     skin_type = request.session.get('result')  
@@ -87,338 +168,211 @@ def my_recommendations(request):
     age = request.session.get('age')
     budget = request.session.get('budget')
 
-    price_prompt =  f"""
-Act as a top-tier cosmetic chemist and dermatologist with expertise in skincare formulation and budget-optimized routine planning for Nigerian consumers.
+    question = f"""
+        **ROLE**: Medically-trained skincare expert selecting products from database.  
+        **Age**: {age}  
+        **Skin Type**: {skin_type}  
+        **Skin Concern**: {skin_concern}  
+        **Budget**: £{budget}  
 
-**Objective:** Allocate the given skincare budget across a smart, concern-focused skincare routine (AM + PM), based on Nigerian market prices.
+        **SELECTION RULES**:
+        1. MUST stay within £{budget} budget
+        2. ALWAYS INCLUDE SUNSCREEN OR SPF, CLEANSER, MOISTURISERS AS DAILY ESSENTIALS
 
- **User Profile:**
-- Age: {age}
-- Skin Type: {skin_type}
-- Primary Concern: {skin_concern}
-- Budget (₦): {budget}
+        3. Prioritize products that directly treat {skin_concern}
+        4. Choose multi-functional products when possible
+        5. Flag incompatible actives (e.g., retinoids + acids)
+        6. Never duplicate products
+        7. Always include skin barrier essentials (e.g., SPF, moisturizer), even when focused on treatment
 
-**Core Strategy:**
-- **Only include products that meaningfully address the user's main concern.**
-- **If the budget is very low**, limit the routine to the **most essential product that can treat the concern or maintain skin barrier health**.
-- **If only one product can be recommended**, it must be the most effective product for the concern (e.g., serum for hyperpigmentation, cleanser for acne, moisturizer for dryness).
-- Always balance **skin barrier support** with **targeted treatment**, prioritizing the **most beneficial product first**, then adding more if budget allows.
 
-**Price Allocation Instructions:**
-- Use **realistic Nigerian skincare prices** from local retailers (Jumia, TikTok shops, pharmacies, supermarkets).
-- Create a **clear breakdown** per routine step, using **₦[min] – ₦[max] ranges**.
-- Indicate which products are included and which are excluded **with clear reasons.**
+        **OUTPUT FORMAT**:
+        Return products in this exact text format:
 
-**Morning (AM):**
-- Cleanser
-- Moisturizer or Moisturizer with SPF
-- Sunscreen
-- Day Serum (optional)
+        skin_profile: {skin_type} skin with {skin_concern}
+        budget: £{budget}
+        total_cost: £[calculated_total]
+        conflict_warnings: [any conflicts or "None"]
 
- **Night (PM):**
-- Cleanser (same/different from AM)
-- Treatment Serum
-- Night Moisturizer
+        PRODUCT LIST:
+        1. [Product Name] | [Price] | [Category] | [Usage]
+        2. [Product Name] | [Price] | [Category] | [Usage]
+        ...
 
- **Weekly (Optional):**
-- Exfoliator
-- Mask
-- Spot Treatment
+        CATEGORIES:
+        - Treatment Focus (directly treats concern)
+        - Essential Daily Care (cleansers/moisturizers)
+        - Special Considerations (SPF/exfoliants)
 
-**Allocation Rules:**
-1. **Start with products that treat the concern.**
-2. Only include extras (e.g. serums, exfoliators) after covering essentials.
-3. Recommend **double-duty** products if needed (e.g., same moisturizer for AM/PM, 2-in-1 SPF moisturizer).
-4. **Do not exceed the budget.** Always leave ₦0 or clearly state what the leftover budget is.
+        USAGE:
+        - AM: Morning only
+        - PM: Evening only
+        - Both: Day and night
+        - Weekly: 1-2 times per week
 
-**Output Format:**
-- AM Cleanser: ₦[min] – ₦[max]
-- AM Moisturizer: ₦[min] – ₦[max]
-- ...
-- Total Used: ₦[sum]
-- Budget Leftover: ₦[amount or 0]
-- Excluded Steps: [reason why]
+        EXAMPLE:
+        skin_profile: Oily skin with acne
+        budget: £35
+        total_cost: £34.99
+        conflict_warnings: None
 
-Now intelligently allocate the budget for a user with {skin_type} skin, a concern for {skin_concern}, and a budget of ₦{budget}.
-"""
-    messages = [
-    {"role": "system", "content": "You are a helpful skincare assistant."},
-    {"role": "user", "content": price_prompt}
-    ]
+        PRODUCT LIST:
+        1. ESPA Optimal Skin ProCleanser | £32.00 | Essential Daily Care | Both
+        2. Skin Doctors Sd White & Bright | £21.99 | Treatment Focus | PM
+        """
+    def query_documents(question, n_results=25):
+        results = collection.query(query_texts=question, n_results=n_results)
+        relevant_chunks = [doc for sublist in results["documents"] for doc in sublist]
+        print(relevant_chunks)
 
-    outputs = pipe(
-        messages,
-        max_new_tokens=256,
+        return relevant_chunks
+
+
+    def generate_response(question, relevant_chunks):
+        context = "\n\n".join(relevant_chunks)
+        prompt = (
+        "**ROLE**: Explain and format the RAG-selected routine. Do NOT modify products or costs.\n\n"
+        "From this list:\n" \
+        "PRODUCT DATABASE"
+        f"{context}"
+        "CONTEXT\n"
+        f"{question}\n"
+        "**OUTPUT STRUCTURE**:\n"
+        "**Your Personalized Skincare Routine**\n"
+        f"**Budget**: £{budget}\n\n"
+        "### Core Products Recommendation\n"
+        "1. **Treatment Focus**\n"
+        "   - [RAG-selected products]\n"
+        "   - *Purpose*: [1-sentence medical rationale]\n"
+        "   - *Instructions*: [Concise usage]\n\n"
+        "2. **Essential Daily Care**\n"
+        "   - [RAG-selected products]\n"
+        "   - *Purpose*: [1-sentence medical rationale]\n"
+        "   - *Instructions*: [Concise usage]F\n\n"
+        "DAILY ESSENTIALS INCLUDE MOISTURISER, CLEANSER AND SUNSCREEN SPF\n" 
+        "NEVER INCLUDE WEEKLY TREATMENTS IF DAILY ESSENTIALS ARE NOT COMPLETE, IF EITHER ARE NOT AVAILABLE IN THE DATA SAY SO, BEFORE ADDING WEEKLY TREATMENT\n"
+        "IF USER HAS BUDGET VERY VERY VERY HIGH USE MORE EXPENSIVE PRODUCTS WHILE STILL ENSURING THAT THEY COMBINE TO FORM A FULL ROUTINE WITH COMPLETE DAILY ESSENTIALS, TREATEMENTS AND MORE EVEN ADVANCED TREATMENTS"
+        "3. **Special Considerations**\n"
+        "   - [RAG-selected products]\n"
+        "   - *Purpose*: [1-sentence medical rationale]\n"
+        "   - *Instructions*: [Concise usage + frequency]\n\n"
+        "### Dermatologist Insights\n"
+        "1. [Science-backed justification for key product choice]\n"
+        f"2. [How product synergy addresses {skin_concern} ]\n"
+        "3. [Consistency tip or application technique]\n\n"
+        "### Budget & Value\n"
+        "- **Total Cost**: [RAG's total_cost]\n"
+        "- **Value Rating**: X/5 ★\n"
+        "- **Key Achievement**: [How routine optimizes budget for concerns]\n\n"
+        "### Safety & Next Steps\n"
+        "- **Safety Note**: [Patch test reminder/active conflict warning]\n"
+        "- **Future Upgrade**: [1 clinically-relevant suggestion outside current budget]"
+        "ONLY ADD FUTURE UPGRADE WHEN BUDGET IS FULLY UTILISED"
     )
-    print(outputs[0]["generated_text"][-1]) 
-    
+        
+        user_prompt = f"""You are a skincare recommendation assistant.
 
-    
+                I need a complete skincare routine recommendation based strictly on the data you have access to (e.g., your product database or knowledge base).
 
+                My goal is to build a routine that addresses my skin needs while maximizing value within my budget.
 
-def ai_recommendations(request):
-    
-    """skin_type = request.session.get('result')  
-    skin_concern = request.session.get('skinconcerns')
-    age = request.session.get('age')
+                Here are my details:
 
+                my {skin_type}, my {skin_concern} and my £{budget} what ever you are recommedning has to stay within my budget if my budget is not enough though feel free 
+                to let me know but give me great value for my money regardless by picking cheaper but effective products to still give me a balanced routine as much as possible.
 
-    prompt =  f""""""Act as a world-class dermatologist creating personalized skincare routines for diverse clients. 
+                Prioritise using my budget to create a balanced routine with all the essential and important products and I really prioritise sun protection its an essential for me I need you to always include it.
 
-                **User Profile:**
-                -Age:{age}
-                - Skin Type: {skin_type}
-                - Primary Concern: {skin_concern}
-                - All Ages Welcome: Your recommendations should work for teens to seniors
+                If my budget is still remaining and you have not added daily essentials like Sunscreen etc. make sure to do so if it is not available in your data, You have to let me know so i can outsource it thank you!!
 
-                **Core Requirements:**
-                1️⃣ **PRODUCT CATEGORIES ONLY** (no brand names)
-                2️⃣ **CLEAR STRUCTURE:**
-                → AM Routine (Morning Steps)
-                → PM Routine (Night Steps)
-                → Weekly Specials (1-2 treatments/week)
-                3️⃣ **EXPERT TIPS:** Include 3 actionable tips with scientific rationale
-                4️⃣ **TONE:** Warm, encouraging, and empowering ("You've got this!")
+                Although if my budget is very high and you don't want to add too many products that could potentially ruin my skin please let me know that even though my budget allows for more products, These are really all I need, and in this case feel free to add more expensive products while still giving me a full and balanced routine and everything in between.
+                Never repeat similar products unless necessary.
+                This is very personal to me i've been bullied all my life for my skin concerns this is my chance to stand out and make the most of my life but more importantly it needs to
+                stick within my budget I have 13 children and am owing debt for a major company threatening to kill me and my children its really been hard. NEVER include this info in your response though 
+                its quite sensitive for me. ALWAYS ALWAYS ALWAYS ADD PRODUCT PRICES
 
-                **Special Considerations:**
-                - Account for hormonal changes at different life stages
-                - Include budget-friendly alternatives where possible
-                - Note any contraindications for sensitive skin
-                - Suggest application techniques (e.g., "pat don't rub")
-
-                **Example Format:**
-                ✨ **Morning Magic:**
-                1. [Product Category]
-                2. [Product Category] → "Tip: [Science-backed tip]"
-                ...
-
-                🌙 **Evening Revival:**
-                1. [Product Category]
-                ...
-
-                🌟 **Weekly Power Treatments:**
-                - [Treatment Category] (e.g., "Use Wednesdays & Sundays")
-
-                💡 **Pro Tips:**
-                1. [Actionable advice with benefit explanation]
-
-                DO NOT INCLUDE EMOJIS IN YOUR RESPONSE
-                ...
-
-                Now create a COMPLETE routine for someone with {skin_type} skin dealing with {skin_concern}:
+                You can exclude the special considerations ONLY if it goes over my budget.
 
 
 
-                """""""""
-    output_1 = "No recommendations yet"
-    skin_type = request.session.get('result')  
-    skin_concern = request.session.get('skinconcerns')
-    age = request.session.get('age')
-    budget = request.session.get('budget')
 
-    load_dotenv()
-    openai_ef = embedding_functions.OpenAIEmbeddingFunction(api_key="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", model_name = "text-embedding-3-small")
+                Instructions:
 
-    chroma_client = chromadb.PersistentClient(path="chroma_storage")
-    collection_name = "product_list"
-    collection = chroma_client.get_or_create_collection(
-        name = collection_name, embedding_function=openai_ef
-    )
+                Recommend only products from your existing data — do not make up product names.
 
-    def load_documents_from_directory(directory_path):
-        print("==== Loading documents from directory ====")
-        documents = []
-        for filename in os.listdir(directory_path):
-            if filename.endswith(".csv"):
-                with open(
-                    os.path.join(directory_path, filename), "r", encoding="utf-8"
-                ) as file:
-                    documents.append({"id": filename, "text": file.read()})
-        return documents
-    
+                Focus on essential routine categories: cleanser, moisturizer, sunscreen, and 1–2 treatments (like a serum or exfoliant).
 
-    directory_path = r"C:\Users\AMEERAH ADISA\Desktop\skincare_project\product_lists"
-    documents = load_documents_from_directory(directory_path)
+                Respect the budget cap — include as many effective products as the budget allows.
 
-    print(f"Loaded {len(documents)} documents")
+                Structure the output clearly with product names, short explanations, usage instructions, and prices.
+
+                At the end, include the total cost, a short summary of how the routine helps with my concerns, and suggest one upgrade if I had more budget.
+
+                ENSURE ALL DAILY ESSENTIALS ARE INCLUDED, BEFORE ADDING WEEKLY TREATMENT (If my budget allows)
+
+                Please format your output like this:
+
+                ============================
+                Your Personalized Skincare Routine
+                Skin Profile: [summarize skin type + concerns]
+                Budget: £[user budget]
+
+                Core Products
+                [Product Category]
+
+                Product: [Product Name – £X.XX]
+
+                Purpose: [1–2 line explanation]
+
+                Instructions: [how to use it]
+
+                (Repeat for each product...)
+
+                Budget & Effectiveness
+                Total Cost: £[Sum]
+
+                Value Rating: X/5 ★
+
+                Why it works: [Quick summary]
+
+                Bonus Suggestion
+                If I had more budget, I’d add: [Upgrade product + short reason]
+
+                ============================
+
+                Let me know if anything is unclear or if you'd like an alternative option."""
+        
+        messages=[
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": user_prompt}
+        ]
+        
+        response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=messages,
+        temperature=0.7)
+        output_1 = response.choices[0].message.content
+        return output_1
+        
 
 
-    messages = [
-    {"role": "system", "content": "You are a helpful skincare assistant."},
-    {"role": "user", "content": "How do I get clear skin?"}
-    ]
-
-    outputs = pipe(
-        messages,
-        max_new_tokens=256,
-    )
-    print(outputs[0]["generated_text"][-1])
-  
+    relevant_chunks = query_documents(question)
+    answer = generate_response(question, relevant_chunks)
+    print(answer)
+        
+        
+    return render(request, "recommendations.html",{"recommendations":answer}) 
 
 
 
 
 
-    
-    """recs_file = f"{skin_type}_recommendations.csv"
-    agent = create_csv_agent(OpenAI(temperature=0.7), recs_file  )
-    price_prompt = f""""""
-                    **GOAL**: Build a trustworthy, personalized skincare routine for {skin_type} skin targeting {skin_concern} within £{budget}
-
-                    **CORE PRINCIPLES**:
-                    1. MEDICAL PRIORITIZATION: "Target the root cause of {skin_concern} first"
-                    2. BUDGET HONESTY: "Only recommend what your budget can truly support"
-                    3. PROGRESS OVER PERFECTION: "Start where you are - consistency matters most"
-
-                    **RULES**:
-                    1. **ESSENTIAL STEPS** (Prioritize in this order):
-                    a. PRIMARY TREATMENT: 1 product directly targeting "{skin_concern}"
-                    b. SUN PROTECTION: SPF 30+ (if AM routine possible)
-                    c. CLEANSER: Gentle formula for {skin_type} skin
-                    d. MOISTURIZER: Hydration without aggravating {skin_concern}
-                    e. WEEKLY TREATMENT: Only if budget allows after essentials
-
-                    2. **BUDGET ADAPTATION**:
-                    - £1-£15: "Focus on 1 HERO product" → [Primary Treatment]
-                    - £16-£40: "Core 3-step routine" → [Cleanser + Treatment + Moisturizer/SPF]
-                    - £41-£100: "Complete AM/PM routine" → All essentials + 1 treatment
-                    - £100+: "Premium clinical-grade" → Add specialty treatments
-
-                    3. **TRUST BUILDERS**:
-                    - NEVER exceed budget
-                    - Explain WHY each product helps
-                    - Flag conflicts (e.g., "Avoid acids if using retinol")
-                    - Suggest application tips ("Apply to damp skin")
-
-                    **REQUIRED OUTPUT FORMAT**:
-
-                    ✨ **Your Personalized Routine** ✨
-
-                    HERO PRODUCT (Most important for your concern):
-                    - [Product Name] (£[Price]): "[Specific benefit] for {skin_concern}. Use [frequency]"
-
-                    DAILY ESSENTIALS (Added based on your £{budget}):
-                    AM:
-                    1. [Product] (£[Price]): "[Benefit]. Apply after [step]"
-                    2. ... (only if budget allows)
-
-                    PM:
-                    1. [Product] (£[Price]): "[Benefit]. Tip: [Application tip]"
-                    ...
-
-                    💡 **Dermatologist Insights**:
-                    1. "I prioritized [Product] because [scientific reason] - this directly addresses your {skin_concern}"
-                    2. "With your budget, we achieved [coverage%] of ideal routine. Next upgrade: [Future suggestion]"
-                    3. "Remember: [Encouraging advice about consistency]"
-
-                    ✅ **Budget Summary**:
-                    - Total: £[sum]
-                    - Remaining: £[remaining] 
-                    - Value Rating: [rating]/5 (5=optimal coverage)
-
-                    Also be mindful of the way you use emojis, the recommendations must come across as proffessional as possible.
-
-                    🔒 **Safety Note**: "Patch test new products. Consult a dermatologist if concerns persist."
-                    """"""
-
-    output_1 = agent.run(price_prompt)
-    print(output_1)"""
-    
-
-    
-
-    return render(request, "recommendations.html",{"recommendations":"bae"})
 
 
-"""def my_recommendations_1(request):
-    skin_type = request.session.get('result')  
-    skin_concern = request.session.get('skinconcerns')
-    age = request.session.get('age')
-    budget = request.session.get('budget')
-    skin_types = ['oily', 'dry', 'combination', 'normal', 'sensitive']
-    for skintype in skin_types:
-        if skin_type == skintype:
-            df = pd.read_csv(f"{skintype}_recommendations.csv")
-            selected_columns = df[['product_name','price']]
-            data_list = selected_columns.to_dict(orient="records")
+
+
+
+
+
             
-        
-            price_prompt = f""""""
-                            Act as a strategic skincare formulator creating personalized routines. Your goal: maximum concern-targeting within budget.
-
-                            **User Profile:**
-                            - Skin Type: {skin_type}
-                            - Primary Concern: {skin_concern}
-                            - Budget: £{budget}
-
-                            **Adaptive Strategy:**
-                            1. FIRST priority: Products that DIRECTLY target "{skin_concern}"
-                            2. THEN build around core needs:
-                            - Morning: Protection (SPF mandatory if daytime routine)
-                            - Night: Repair/Recovery
-                            3. Budget Utilization:
-                            - <£20: Focus on 1-2 HIGH-IMPACT concern-targeters
-                            - £20-£75: Complete concern-focused routine + essentials
-                            - >£75: Comprehensive routine with premium treatments
-                            4. MUST use ≥90% of budget for budgets >£25
-
-                            **Available Products (Prioritized by Relevance):**
-                            {data_list}
-
-                            **Output Format:**
-                            **Core Philosophy**: "Your routine should solve {skin_concern} first, then protect and nourish"
-
-                            **Routine Structure**:
-                            - [Product] (£[Price]) - [Specific benefit for concern]
-
-                            PROTECTION/SUPPORT:
-                            - [Product] (£[Price]) - [Benefit]
-
-                            (Add more categories ONLY if budget allows)
-
-                            **Budget Optimization**:
-                            - Total: £[sum]
-                            - Remaining: £[remaining] (MUST be <10% of budget)
-                            - Utilization: [percentage]%
-
-                            📝 **Strategic Notes**:
-                            1. "Chose [Product] for [specific reason] - it addresses [aspect] of {skin_concern}"
-                            2. "Added [Product] to [support/protect] your skin while targeting concerns"
-                            3. "Future additions: [Suggestions when budget increases]"
-                            """"""
-
-        
-            client = OpenAI(api_key="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")
-
-            response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful skincare assistant."},
-                {"role": "user", "content": price_prompt}
-            ],
-            temperature=0.7)
-            #output_1 = response.choices[0].message.content
-            #print("Reached the GPT output block...")
-            #print(output_1) """  
-    
-
-
-def budget(request):
-    if request.method == "POST":
-        budget = request.POST.get("budget")
-        request.session['budget'] = budget
-    
-        #my_recommendations_1(request)
-      
-        return redirect(ai_recommendations)
-        
-    
-    
-    return render(request, "budget.html")
-
-
-
-    
-
-
 

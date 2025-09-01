@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sign Up</title>
+</head>
+<body>
+    <h1>Create an Account</h1>
+
+    <!-- Display form -->
+    <form method="POST">
+        {% csrf_token %}
+        
+        <!-- Render all form fields -->
+        {{ form.as_p }}
+        
+        <button type="submit">Sign Up</button>
+    </form>
+
+</body>
+</html>
