@@ -1,20 +1,10 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Sign Up</title>
-</head>
-<body>
-    <h1>Create an Account</h1>
-
-    <!-- Display form -->
-    <form method="POST">
+{% extends 'base.html' %}
+{% block content %}
+    <h2>Create account</h2>
+    <form method="post" novalidate>
         {% csrf_token %}
-        
-        <!-- Render all form fields -->
         {{ form.as_p }}
-        
-        <button type="submit">Sign Up</button>
+        <button class="btn" type="submit">Sign up</button>
     </form>
-
-</body>
-</html>
+    <p>Already have an account? <a href="{% url 'login' %}">Log in</a></p>
+{% endblock %}

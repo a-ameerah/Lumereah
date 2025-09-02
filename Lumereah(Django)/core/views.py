@@ -17,11 +17,49 @@ import torch
 from django.shortcuts import render, redirect
 from django.contrib.auth import login
 from .forms import SignUpForm
-from .forms import ProfileForm
 from io import StringIO
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .forms import SignUpForm
 
 
 # Create your views here.
+def signup_view(request):
+    if request.method == 'POST':
+        form = SignUpForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.save()
+            login(request, user) 
+            messages.success(request, f'Welcome, {user.username}!')
+            return redirect('dashboard')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = SignUpForm()
+    return render(request, 'signup.html', {'form': form})
+
+
+
+
+
+@login_required
+def dashboard(request):
+    skin_type = request.session.get('result')
+    skin_concern = request.session.get('skinconcerns')
+    age = request.session.get('age')
+    budget = request.session.get('budget')
+
+    context = {
+                'skin_type': skin_type,
+                'skin_concern': skin_concern,
+                'age': age,
+                'budget': budget,
+                }
+    
+    return render(request, 'dashboard.html', context)
+
+
 
 api_key = os.getenv("OPENAI_API_KEY")
 

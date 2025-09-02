@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block content %}
+    <p>Hello, {{ request.user.username }} — <a href="{% url 'logout' %}">Log out</a></p>
+
+
+    <h3>Your latest test (from this device)</h3>
+    <ul>
+        <li>Age: {{ age|default:'—' }}</li>
+        <li>Skin type: {{ skin_type|default:'—' }}</li>
+        <li>Skin concern: {{ skin_concern|default:'—' }}</li>
+        <li>Budget: £{{ budget|default:'—' }}</li>
+    </ul>
+
+
+    <p><a class="btn" href="{% url 'age' %}">Retake test</a>
+        <a class="btn" href="{% url 'my_recommendations' %}">View recommendations</a></p>
+{% endblock %}
