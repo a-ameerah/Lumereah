@@ -24,8 +24,7 @@ from .forms import SignUpForm
 from django.utils.safestring import mark_safe
 import re
 from pathlib import Path
-from chromadb import NotFoundError
-
+from chromadb.errors import NotFoundError
 
 
 # Create your views here.
@@ -241,6 +240,8 @@ collection.add(
     documents=[doc["text"] for doc in chunked_documents],
     ids=[doc["id"] for doc in chunked_documents]
 )
+
+
 def my_recommendations(request):
     api_key = os.environ.get('OPENAI_API_KEY')
     client = OpenAI(api_key=api_key)
