@@ -163,10 +163,7 @@ def budget(request):
     return render(request, "budget.html")
 
 
-hf_ef = embedding_functions.OpenAIEmbeddingFunction(
-    api_key=os.getenv("OPENAI_API_KEY"),
-    model_name="text-embedding-3-small"
-)
+
 def load_documents_from_directory(directory_path):
     file_count = 0
     row_count = 0
@@ -227,40 +224,52 @@ def get_chroma_collection():
             api_key=os.getenv("OPENAI_API_KEY"),
             model_name="text-embedding-3-small"
         )
-        chroma_client = chromadb.PersistentClient(path="chroma_storage")
-        collection = chroma_client.get_collection(name="product_list", embedding_function=hf_ef)
-        return collection
-    except NotFoundError:
-        # If collection doesn't exist, create it
-        collection = chroma_client.create_collection(name="product_list", embedding_function=hf_ef)
-        
-        # Load and add documents to the collection
-        BASE_DIR = Path(__file__).resolve().parent.parent
-        directory_path = os.path.join(BASE_DIR, 'product_recommendations')
-        documents_1 = load_documents_from_directory(directory_path)
-        
-        # Chunk documents
-        chunked_documents = []
-        for doc in documents_1:
-            chunks = split_text(doc["text"]) 
-            for i, chunk in enumerate(chunks):
-                chunked_documents.append({
-                    "id": f"{doc['id']}_chunk{i+1}",
-                    "text": chunk
-                })
-        
-        # Add documents to collection
-        if chunked_documents:
-            collection.add(
-                documents=[doc["text"] for doc in chunked_documents],
-                ids=[doc["id"] for doc in chunked_documents]
+
+        # Make sure storage path exists
+        storage_path = os.path.join(BASE_DIR, "chroma_storage")
+        os.makedirs(storage_path, exist_ok=True)
+
+        chroma_client = chromadb.PersistentClient(path=storage_path)
+
+        try:
+            # Try to get existing collection
+            collection = chroma_client.get_collection(
+                name="product_list",
+                embedding_function=hf_ef
             )
-            print(f"Added {len(chunked_documents)} documents to collection")
-        
+        except NotFoundError:
+            # Create if it doesn't exist
+            collection = chroma_client.create_collection(
+                name="product_list",
+                embedding_function=hf_ef
+            )
+
+            # Load & add documents immediately
+            directory_path = os.path.join(BASE_DIR, 'product_recommendations')
+            documents_1 = load_documents_from_directory(directory_path)
+
+            chunked_documents = []
+            for doc in documents_1:
+                chunks = split_text(doc["text"])
+                for i, chunk in enumerate(chunks):
+                    chunked_documents.append({
+                        "id": f"{doc['id']}_chunk{i+1}",
+                        "text": chunk
+                    })
+
+            if chunked_documents:
+                collection.add(
+                    documents=[doc["text"] for doc in chunked_documents],
+                    ids=[doc["id"] for doc in chunked_documents]
+                )
+                print(f"Added {len(chunked_documents)} documents to collection")
+
         return collection
+
     except Exception as e:
-        print(f"Error getting Chroma collection: {e}")
+        print(f"Error in get_chroma_collection: {e}")
         return None
+
 
 def my_recommendations(request):
      # Get the collection
