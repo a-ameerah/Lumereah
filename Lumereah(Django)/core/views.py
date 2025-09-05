@@ -24,6 +24,8 @@ from .forms import SignUpForm
 from django.utils.safestring import mark_safe
 import re
 from pathlib import Path
+from chromadb import NotFoundError
+
 
 
 # Create your views here.
@@ -217,17 +219,28 @@ for doc in documents_1:
 
 
 
+
+
 chroma_client = chromadb.PersistentClient(path="chroma_storage")
-chroma_client.delete_collection(name="product_list")
+
+try:
+    chroma_client.delete_collection(name="product_list")
+    print("Deleted existing product_list collection")
+except NotFoundError:
+    print("Collection product_list does not exist, skipping deletion")
+except Exception as e:
+    print(f"Unexpected error when deleting collection: {e}")
+
 collection_name = "product_list"
 collection = chroma_client.get_or_create_collection(
-    name = collection_name, embedding_function=hf_ef
+    name=collection_name, 
+    embedding_function=hf_ef
 )
+
 collection.add(
     documents=[doc["text"] for doc in chunked_documents],
     ids=[doc["id"] for doc in chunked_documents]
 )
-
 def my_recommendations(request):
     api_key = os.environ.get('OPENAI_API_KEY')
     client = OpenAI(api_key=api_key)
