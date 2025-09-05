@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
-import requests
+import requests 
 import time
 import csv
 import random
@@ -16,14 +16,18 @@ from transformers import pipeline
 import torch
 from django.shortcuts import render, redirect
 from django.contrib.auth import login
-from .forms import SignUpForm
+from .forms import SignUpForm, LoginForm
 from io import StringIO
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .forms import SignUpForm
+from django.utils.safestring import mark_safe
+import re
 
 
 # Create your views here.
+
+
 def signup_view(request):
     if request.method == 'POST':
         form = SignUpForm(request.POST)
@@ -40,30 +44,42 @@ def signup_view(request):
     return render(request, 'signup.html', {'form': form})
 
 
-
-
+def login_view(request):
+    if request.method == 'POST':
+        form = LoginForm(request, data=request.POST)
+        if form.is_valid():
+            login(request, form.get_user())
+            return redirect('dashboard')
+    else:
+        form = LoginForm()
+    
+    return render(request, 'login.html', {'form': form})
 
 @login_required
 def dashboard(request):
     skin_type = request.session.get('result')
-    skin_concern = request.session.get('skinconcerns')
+    skin_concerns_list = request.session.get('skinconcerns_list', [])
     age = request.session.get('age')
     budget = request.session.get('budget')
 
+    # Convert list to string for display
+    skin_concerns_str = ', '.join(skin_concerns_list) if skin_concerns_list else 'None selected'
+
     context = {
-                'skin_type': skin_type,
-                'skin_concern': skin_concern,
-                'age': age,
-                'budget': budget,
-                }
+        'skin_type': skin_type,
+        'skin_concerns_list': skin_concerns_list,
+        'skin_concerns_str': skin_concerns_str,
+        'age': age,
+        'budget': budget,
+    }
     
     return render(request, 'dashboard.html', context)
-
 
 
 api_key = os.getenv("OPENAI_API_KEY")
 
 client = OpenAI(api_key=api_key)
+load_dotenv() 
 
 
 
@@ -114,9 +130,26 @@ def show_form(request):
 
 def skin_concern(request):
     if request.method == 'POST':
-        skinconcerns = request.POST.get("skinconcerns")
-        request.session['skinconcerns'] = skinconcerns   
-        return redirect(budget)
+        # Get all selected concerns
+        selected_concerns = request.POST.getlist('skinconcerns')
+        
+        # Handle the "Other" option
+        other_concern = request.POST.get('skinconcerns_other', '').strip()
+        if 'Other' in selected_concerns and other_concern:
+            # Remove the generic "Other" value and add the specific concern
+            selected_concerns.remove('Other')
+            selected_concerns.append(other_concern)
+        elif 'Other' in selected_concerns and not other_concern:
+            # If Other is selected but no text provided, remove it
+            selected_concerns.remove('Other')
+        
+        # Store the list in session
+        request.session['skinconcerns_list'] = selected_concerns
+        
+        # Also store as a string for backward compatibility
+        request.session['skinconcerns'] = ', '.join(selected_concerns)
+        
+        return redirect('budget')  # Make sure this matches your URL name
     
     return render(request, "skinconcerns.html")
 
@@ -136,7 +169,6 @@ hf_ef = embedding_functions.OpenAIEmbeddingFunction(
     model_name="text-embedding-3-small"
 )
 def load_documents_from_directory(directory_path):
-    print(f"==== Loading documents from {directory_path} ====")
     file_count = 0
     row_count = 0
     
@@ -157,12 +189,10 @@ def load_documents_from_directory(directory_path):
                             "text": row_text
                         })
                     
-    print(f"Processed {file_count} CSV files with  total rows")
     return documents
 
 directory_path = r"C:\Users\AMEERAH ADISA\Desktop\product_recommendations"
 documents_1 = load_documents_from_directory(directory_path)
-print(f"Loaded {len(documents_1)} documents")
 
 
 
@@ -186,7 +216,6 @@ for doc in documents_1:
         })
 
 
-print(len(chunked_documents))
 
 
 chroma_client = chromadb.PersistentClient(path="chroma_storage")
@@ -202,22 +231,25 @@ collection.add(
 
 def my_recommendations(request):
     skin_type = request.session.get('result')  
-    skin_concern = request.session.get('skinconcerns')
+    skin_concerns_list = request.session.get('skinconcerns_list', [])
     age = request.session.get('age')
     budget = request.session.get('budget')
+
+    # Convert list to string for the AI prompt
+    skin_concerns_str = ', '.join(skin_concerns_list) if skin_concerns_list else 'None'
 
     question = f"""
         **ROLE**: Medically-trained skincare expert selecting products from database.  
         **Age**: {age}  
         **Skin Type**: {skin_type}  
-        **Skin Concern**: {skin_concern}  
+        **Skin Concern**: {skin_concerns_str}  
         **Budget**: £{budget}  
 
         **SELECTION RULES**:
         1. MUST stay within £{budget} budget
         2. ALWAYS INCLUDE SUNSCREEN OR SPF, CLEANSER, MOISTURISERS AS DAILY ESSENTIALS
 
-        3. Prioritize products that directly treat {skin_concern}
+        3. Prioritize products that directly treat {skin_concerns_str}
         4. Choose multi-functional products when possible
         5. Flag incompatible actives (e.g., retinoids + acids)
         6. Never duplicate products
@@ -227,7 +259,7 @@ def my_recommendations(request):
         **OUTPUT FORMAT**:
         Return products in this exact text format:
 
-        skin_profile: {skin_type} skin with {skin_concern}
+        skin_profile: {skin_type} skin with {skin_concerns_str}
         budget: £{budget}
         total_cost: £[calculated_total]
         conflict_warnings: [any conflicts or "None"]
@@ -296,7 +328,7 @@ def my_recommendations(request):
         "   - *Instructions*: [Concise usage + frequency]\n\n"
         "### Dermatologist Insights\n"
         "1. [Science-backed justification for key product choice]\n"
-        f"2. [How product synergy addresses {skin_concern} ]\n"
+        f"2. [How product synergy addresses {skin_concerns_str} ]\n"
         "3. [Consistency tip or application technique]\n\n"
         "### Budget & Value\n"
         "- **Total Cost**: [RAG's total_cost]\n"
@@ -316,7 +348,7 @@ def my_recommendations(request):
 
                 Here are my details:
 
-                my {skin_type}, my {skin_concern} and my £{budget} what ever you are recommedning has to stay within my budget if my budget is not enough though feel free 
+                my {skin_type}, my {skin_concerns_str} and my £{budget} what ever you are recommedning has to stay within my budget if my budget is not enough though feel free 
                 to let me know but give me great value for my money regardless by picking cheaper but effective products to still give me a balanced routine as much as possible.
 
                 Prioritise using my budget to create a balanced routine with all the essential and important products and I really prioritise sun protection its an essential for me I need you to always include it.
@@ -390,7 +422,11 @@ def my_recommendations(request):
         messages=messages,
         temperature=0.7)
         output_1 = response.choices[0].message.content
-        return output_1
+    
+        cleaned = re.sub(r'[*#=]+', '', output_1)
+        cleaned = cleaned.replace("\n", "<br>")
+
+        return cleaned
         
 
 

@@ -1,0 +1,39 @@
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #d6c1e8; /* light lavender background */
+  font-family: Arial, sans-serif;
+  position: relative;
+}
+
+.result-text {
+  font-size: 1.8rem;
+  color: #2d1b3c; /* deep purple text */
+  text-align: center;
+  max-width: 80%;
+}
+
+.next-btn {
+  position: absolute;
+  bottom: 2rem;
+  right: 2rem;
+  background-color: #2d1b3c; /* dark purple */
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  font-size: 1.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s ease;
+}
+
+.next-btn:hover {
+  background-color: #45285a;
+}

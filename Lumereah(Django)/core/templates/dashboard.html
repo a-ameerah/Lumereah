@@ -1,17 +1,29 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block content %}
-    <p>Hello, {{ request.user.username }} — <a href="{% url 'logout' %}">Log out</a></p>
 
+<!-- Link to dashboard.css -->
+<link rel="stylesheet" href="{% static 'core/dashboard.css' %}">
 
-    <h3>Your latest test (from this device)</h3>
-    <ul>
-        <li>Age: {{ age|default:'—' }}</li>
-        <li>Skin type: {{ skin_type|default:'—' }}</li>
-        <li>Skin concern: {{ skin_concern|default:'—' }}</li>
-        <li>Budget: £{{ budget|default:'—' }}</li>
-    </ul>
+<div class="dashboard-container">
 
+    <!-- Greeting -->
+    <h2>Hello, {{ request.user.first_name|default:request.user.username }}</h2>
+    <p class="subtitle">Your latest recommendations (from this device)</p>
 
-    <p><a class="btn" href="{% url 'age' %}">Retake test</a>
-        <a class="btn" href="{% url 'my_recommendations' %}">View recommendations</a></p>
+    <!-- Card -->
+    <div class="dashboard-card">
+        <p><strong>Age:</strong> {{ age|default:"—" }}</p>
+        <p><strong>Skin Type:</strong> {{ skin_type|default:"—" }}</p>
+        <p><strong>Skin Concerns:</strong> {{ skin_concern|default:"—" }}</p>
+        <p><strong>Budget:</strong> £{{ budget|default:"—" }}</p>
+    </div>
+
+    <!-- Buttons -->
+    <div class="dashboard-buttons">
+        <a href="{% url 'age' %}" class="retake">Retake Test</a>
+        <a href="{% url 'my_recommendations' %}" class="recommend">View Recommendations</a>
+    </div>
+</div>
+
 {% endblock %}

@@ -1,21 +1,22 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MIRA BOT</title>
+    <title>Lumereah</title>
+    <link rel="stylesheet" href="{% static 'core/age.css' %}">
 </head>
 <body>
-<form method="post">
-  {% csrf_token %}
-  
-  <label for="age">Your Age:</label>
-  <input type="number" id="age" name="age" min="1" step="1" required>
-  
-  <button type="submit">Submit</button>  
+    <form method="post" class="age-form">
+        {% csrf_token %}
 
-</form>
+        <label for="age">Enter Your Age Please</label>
+        <input type="number" id="age" name="age" min="1" step="1" required>
 
-    
+        <button type="submit" class="next-btn">
+         →   
+        </button>
+    </form>
 </body>
 </html>

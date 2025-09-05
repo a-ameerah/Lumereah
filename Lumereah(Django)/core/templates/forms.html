@@ -3,55 +3,436 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MIRA'S SKINCARE BOT</title>
+    <title>Skin Type Quiz</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        
+        body {
+            background-color: white;
+            color: #3B1E54;
+            line-height: 1.6;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .quiz-container {
+            background-color: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-bar {
+            height: 4px;
+            background-color: #e0e0e0;
+            width: 100%;
+        }
+        
+        .progress {
+            height: 100%;
+            background-color: #3B1E54;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .question-counter {
+            padding: 15px 20px 5px;
+            font-size: 14px;
+            color: #9B7EBD;
+            text-align: center;
+        }
+        
+        .question-card {
+            padding: 20px;
+        }
+        
+        .question-text {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+            line-height: 1.4;
+        }
+        
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .option {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-radius: 12px;
+            border: 2px solid #3B1E54;
+            background-color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .option:hover {
+            border-color: #D4BEE4;
+        }
+        
+        .option.selected {
+            border-color: #3B1E54;
+            background-color: #D4BEE4;
+        }
+        
+        .option input {
+            display: none;
+        }
+        
+        .option-label {
+            margin-left: 12px;
+            font-size: 16px;
+        }
+        
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+        }
+        
+        .nav-btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        #prevBtn {
+            background-color:#D4BEE4;
+            color:  #3B1E54;
+        }
+        
+        #prevBtn:hover:not(:disabled) {
+            background-color: #D4BEE4;
+        }
+        
+        #prevBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        #nextBtn {
+            background-color: #3B1E54;
+            color: white;
+        }
+        
+        #nextBtn:hover:not(:disabled) {
+            background-color: #9B7EBD;
+        }
+        
+        #nextBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .submit-container {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        #submitBtn {
+            padding: 14px 28px;
+            background-color: #3B1E54;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        
+        #submitBtn:hover {
+            background-color: #9B7EBD;
+        }
+        
+        .tab {
+            display: none;
+        }
+        
+        .tab.active {
+            display: block;
+        }
+    </style>
 </head>
 <body>
-    <form method="post" action="{% url 'show_form' %}">
-    {% csrf_token %}
-    <label> How does your skin feel a few hours after washing your face (without any products)?</label><br>
-        <input type ="radio", name = "q1" , value = "A">Shiny or greasy all over<br>
-        <input type ="radio", name = "q1" , value = "B">Tight or flaky<br>
-        <input type ="radio", name = "q1" , value = "C">Oily in some spots, dry in others<br>
-        <input type ="radio", name = "q1" , value = "D">Comfortable and balanced<br>
-        <input type ="radio", name = "q1" , value = "E">Stings or gets red easily<br>
-    <br>
-    <label>How often do you get acne or clogged pores?</label><br>
-        <input type ="radio", name = "q2" , value = "A">Very often<br>
-        <input type ="radio", name = "q2" , value = "B">Rarely, but skin feels dry<br>
-        <input type ="radio", name = "q2" , value = "C">Often in the T-zone(Eye, Nose and Mouth) only<br>
-        <input type ="radio", name = "q2" , value = "D">Not much<br>
-        <input type ="radio", name = "q2" , value = "E">Skin breaks out from new products easily<br>
-    <br>
-    <label>What happens when you apply moisturizer?</label><br>
-        <input type ="radio", name = "q3" , value = "A">My face gets greasy quickly<br>
-        <input type ="radio", name = "q3" , value = "B">It still feels dry or tight<br>
-        <input type ="radio", name = "q3" , value = "C">Some areas are fine, others get oily<br>
-        <input type ="radio", name = "q3" , value = "D">Feels nice and smooth all over<br>
-        <input type ="radio", name = "q3" , value = "E">Sometimes it stings or turns red<br>
-    <br>
-    <label>How does your skin react to new products?</label><br>
-        <input type ="radio", name = "q4" , value = "A">Fine, unless it's very oily<br>
-        <input type ="radio", name = "q4" , value = "B">Never absorbs enough, feels tight<br>
-        <input type ="radio", name = "q4" , value = "C">Some parts are okay, others get irritated<br>
-        <input type ="radio", name = "q4" , value = "D">No big reactions<br>
-        <input type ="radio", name = "q4" , value = "E">Easily irritated or red<br>
-    <br>
-    <label>How does your T-zone (forehead, nose, chin) usually look?</label><br>
-        <input type ="radio", name = "q5" , value = "A">Always shinyy<br>
-        <input type ="radio", name = "q5" , value = "B">Dry and dull<br>
-        <input type ="radio", name = "q5" , value = "C">Shiny while other areas feel dry<br>
-        <input type ="radio", name = "q5" , value = "D">Just normal<br>
-        <input type ="radio", name = "q5" , value = "E">Red or itchy sometimes<br>
-    <br>
-    <button type="submit">Click here to submit!</button>
-    </form>
+    <div class="quiz-container">
+        <div class="progress-bar">
+            <div class="progress" id="progress"></div>
+        </div>
         
+        <div class="question-counter" id="question-counter">Question 1 of 5</div>
         
-    
-    
-    
+        <form method="post" action="{% url 'show_form' %}" id="skinQuiz">
+            {% csrf_token %}
+            
+            <!-- Question 1 -->
+            <div class="tab active" id="tab-1">
+                <div class="question-card">
+                    <h3 class="question-text">How does your skin feel a few hours after washing your face (without any products)?</h3>
+                    <div class="options-container">
+                        <label class="option">
+                            <input type="radio" name="q1" value="A">
+                            <span class="option-label">Shiny or greasy all over</span>
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q1" value="B">
+                            <span class="option-label">Tight or flaky</span>
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q1" value="C">
+                            <span class="option-label">Oily in some spots, dry in others</span>
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q1" value="D">
+                            <span class="option-label">Comfortable and balanced</span>
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q1" value="E">
+                            <span class="option-label">Stings or gets red easily</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Question 2 -->
+            <div class="tab" id="tab-2">
+                <div class="question-card">
+                    <h3 class="question-text">How often do you get acne or clogged pores?</h3>
+                    <div class="options-container">
+                        <label class="option">
+                            <input type="radio" name="q2" value="A">
+                            <span class="option-label">Very often</span>
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q2" value="B">
+                            <span class="option-label">Rarely, but skin feels dry</span>
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q2" value="C">
+                            <span class="option-label">Often in the T-zone only</span>
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q2" value="D">
+                            <span class="option-label">Not much</span>
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q2" value="E">
+                            <span class="option-label">Skin breaks out from new products easily</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Question 3 -->
+            <div class="tab" id="tab-3">
+                <div class="question-card">
+                    <h3 class="question-text">What happens when you apply moisturizer?</h3>
+                    <div class="options-container">
+                        <label class="option">
+                            <input type="radio" name="q3" value="A">
+                            <span class="option-label">My face gets greasy quickly</span>
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q3" value="B">
+                            <span class="option-label">It still feels dry or tight</span>
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q3" value="C">
+                            <span class="option-label">Some areas are fine, others get oily</span>
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q3" value="D">
+                            <span class="option-label">Feels nice and smooth all over</span>
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q3" value="E">
+                            <span class="option-label">Sometimes it stings or turns red</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Question 4 -->
+            <div class="tab" id="tab-4">
+                <div class="question-card">
+                    <h3 class="question-text">How does your skin react to new products?</h3>
+                    <div class="options-container">
+                        <label class="option">
+                            <input type="radio" name="q4" value="A">
+                            <span class="option-label">Fine, unless it's very oily</span>
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q4" value="极">
+                            <span class="option-label">Never absorbs enough, feels tight</span>
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q4"极="C">
+                            <span class="option-label">Some parts are okay, others get irritated</span>
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q4" value="D">
+                            <span class="option-label">No big reactions</span>
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q4" value="E">
+                            <span class="option-label">Easily irritated or red</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Question 5 -->
+            <div class="tab" id="tab-5">
+                <div class="question-card">
+                    <h3 class="question-text">How does your T-zone (forehead, nose, chin) usually look?</h3>
+                    <div class="options-container">
+                        <label class="option">
+                            <input type="radio" name="q5" value="A">
+                            <span class="option-label">Always shiny</span>
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q5" value="B">
+                            <span class="option-label">Dry and dull</span>
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q5" value="C">
+                            <span class="option-label">Shiny while other areas feel dry</span>
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q5" value="D">
+                            <span class="option-label">Just normal</span>
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q5" value="E">
+                            <span class="option-label">Red or itchy sometimes</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Navigation Buttons -->
+            <div class="navigation-buttons">
+                <button type="button" class="nav-btn" id="prevBtn" disabled>Previous</button>
+                <button type="button" class="nav-btn" id="nextBtn">Next</button>
+            </div>
+            
+            <!-- Submit Button (initially hidden) -->
+            <div class="submit-container" id="submitContainer" style="display: none;">
+                <button type="submit" class="nav-btn" id="submitBtn">Submit Quiz</button>
+            </div>
+        </form>
+    </div>
 
-
-    </body>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Quiz state management
+            let currentTab = 0;
+            const tabs = document.querySelectorAll('.tab');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const submitContainer = document.getElementById('submitContainer');
+            const progressBar = document.getElementById('progress');
+            const questionCounter = document.getElementById('question-counter');
+            
+            // Update the UI based on current tab
+            function updateUI() {
+                // Show/hide tabs
+                tabs.forEach((tab, index) => {
+                    tab.classList.toggle('active', index === currentTab);
+                });
+                
+                // Update buttons
+                prevBtn.disabled = currentTab === 0;
+                
+                if (currentTab === tabs.length - 1) {
+                    nextBtn.style.display = 'none';
+                    submitContainer.style.display = 'block';
+                } else {
+                    nextBtn.style.display = 'inline-block';
+                    submitContainer.style.display = 'none';
+                }
+                
+                // Update progress bar
+                const progressPercentage = ((currentTab + 1) / tabs.length) * 100;
+                progressBar.style.width = `${progressPercentage}%`;
+                
+                // Update question counter
+                questionCounter.textContent = `Question ${currentTab + 1} of ${tabs.length}`;
+                
+                // Check if current question is answered
+                checkAnswerStatus();
+            }
+            
+            // Check if current question is answered
+            function checkAnswerStatus() {
+                const currentQuestionName = `q${currentTab + 1}`;
+                const selectedOption = document.querySelector(`input[name="${currentQuestionName}"]:checked`);
+                nextBtn.disabled = !selectedOption;
+                
+                // Update visual selection state
+                document.querySelectorAll('.option').forEach(option => {
+                    option.classList.remove('selected');
+                });
+                
+                if (selected极) {
+                    selectedOption.closest('.option').classList.add('selected');
+                }
+            }
+            
+            // Event listeners for option selection
+            document.querySelectorAll('.option input').forEach(input => {
+                input.addEventListener('change', checkAnswerStatus);
+            });
+            
+            // Option click events (for better mobile UX)
+            document.querySelectorAll('.option').forEach(option => {
+                option.addEventListener('click', function() {
+                    const radio = this.querySelector('input[type="radio"]');
+                    if (radio) {
+                        radio.checked = true;
+                        checkAnswerStatus();
+                    }
+                });
+            });
+            
+            // Navigation events
+            prevBtn.addEventListener('click', function() {
+                if (currentTab > 0) {
+                    currentTab--;
+                    updateUI();
+                }
+            });
+            
+            nextBtn.addEventListener('click', function() {
+                if (currentTab < tabs.length - 1) {
+                    currentTab++;
+                    updateUI();
+                }
+            });
+            
+            // Initialize UI
+            updateUI();
+        });
+    </script>
 </body>
 </html>

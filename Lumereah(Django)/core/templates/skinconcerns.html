@@ -1,18 +1,95 @@
+{% load static %}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Skin Concerns</title>
+    <title>Skin Concerns | Skincare Quiz</title>
+    <link rel="stylesheet" href="{% static 'core/concerns.css' %}">
 </head>
 <body>
-    <form method="POST" action="{% url 'skin_concern' %}">
-    {% csrf_token %}
-    
-    <label for="skinconcerns">Do you have any particular skin concerns?</label><br>
-    <input type="text" name="skinconcerns" id="skinconcerns" placeholder="e.g. Hyperpigmentation, Whiteheads etc.">
-    <button for="skinconcerns", type="submit" >Enter</button>
-    </form>
-    
+    <div class="container">
+        <div class="header">
+            <h1>Which of these skin concerns do you experience?</h1>
+            <p>Select all that apply</p>
+        </div>
+        
+        <form method="POST" action="{% url 'skin_concern' %}" id="skinConcernForm">
+            {% csrf_token %}
+            
+            <div class="options-container">
+                <label class="option">
+                    <input type="checkbox" name="skinconcerns" value="Acne">
+                    <span class="option-label">Acne</span>
+                </label>
+                
+                <label class="option">
+                    <input type="checkbox" name="skinconcerns" value="Blackheads">
+                    <span class="option-label">Blackheads</span>
+                </label>
+                
+                <label class="option">
+                    <input type="checkbox" name="skinconcerns" value="Whiteheads">
+                    <span class="option-label">Whiteheads</span>
+                </label>
+                
+                <label class="option">
+                    <input type="checkbox" name="skinconcerns" value="Hyperpigmentation">
+                    <span class="option-label">Hyperpigmentation</span>
+                </label>
+                
+                <label class="option" id="otherOption">
+                    <input type="checkbox" name="skinconcerns" value="Other">
+                    <span class="option-label">Other</span>
+                </label>
+                
+                <input type="text" class="other-input" id="otherInput" name="skinconcerns_other" placeholder="Please specify your concern">
+            </div>
+            
+            <div class="submit-container">
+                <button type="submit" class="submit-btn" id="submitBtn" disabled>Continue</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const options = document.querySelectorAll('.option');
+            const otherOption = document.getElementById('otherOption');
+            const otherInput = document.getElementById('otherInput');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            options.forEach(option => {
+                option.addEventListener('click', function() {
+                    const checkbox = this.querySelector('input[type="checkbox"]');
+                    checkbox.checked = !checkbox.checked;
+                    
+                    if (checkbox.checked) {
+                        this.classList.add('selected');
+                    } else {
+                        this.classList.remove('selected');
+                    }
+                    
+                    if (checkbox.value === 'Other') {
+                        if (checkbox.checked) {
+                            otherInput.style.display = 'block';
+                            otherInput.focus();
+                        } else {
+                            otherInput.style.display = 'none';
+                            otherInput.value = '';
+                        }
+                    }
+                    
+                    const anyChecked = document.querySelector('input[name="skinconcerns"]:checked');
+                    submitBtn.disabled = !anyChecked;
+                });
+            });
+            
+            otherInput.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+        });
+    </script>
 </body>
 </html>

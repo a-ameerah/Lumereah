@@ -1,20 +1,25 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Budget</title>
+    <title>Lumereah</title>
+    <link rel="stylesheet" href="{% static 'core/age.css' %}">
 </head>
 <body>
-    <form method="post">
+    <form method="post" class="age-form">
         {% csrf_token %}
-        <label for="budget">What is your budget?</label>
+
+        <label for="budget">Enter Your Budget</label>
+
         <input name="budget" id="budget" type="number"
         min="0.00" max="300,000" step="10.00"
-        placeholder="e.g 15,000.00">
+        placeholder="e.g 150.00">
 
-        <button type="submit">Enter!</button>
-
+        <button type="submit" class="next-btn">
+        →
+        </button>
     </form>
 </body>
 </html>

@@ -1,10 +1,30 @@
 {% extends 'base.html' %}
+{% load static %}
+
 {% block content %}
-    <h2>Log in</h2>
-    <form method="post">
+<div class="signup-container">
+    <h2 class="signup-title">Log In</h2>
+
+    <form method="post" class="signup-form">
         {% csrf_token %}
-        {{ form.as_p }}
-        <button class="btn" type="submit">Log in</button>
+        
+        <label for="{{ form.username.id_for_label }}">Username</label>
+        {{ form.username }}
+        {% for error in form.username.errors %}
+            <p class="error">{{ error }}</p>
+        {% endfor %}
+
+        <label for="{{ form.password.id_for_label }}">Password</label>
+        {{ form.password }}
+        {% for error in form.password.errors %}
+            <p class="error">{{ error }}</p>
+        {% endfor %}
+
+        <button type="submit" class="signup-btn">Log In</button>
     </form>
-    <p>No account? <a href="{% url 'signup' %}">Sign up</a></p>
+
+    <p class="login-text">
+        No account? <a href="{% url 'signup' %}" class="login-link">Sign up</a>
+    </p>
+</div>
 {% endblock %}

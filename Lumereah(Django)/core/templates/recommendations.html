@@ -1,13 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chatbot</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lumereah</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f9fafb;
+      margin: 0;
+      padding: 1rem;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      text-align: center;
+      color: #3B1E54;
+    }
+
+    .recommendation-box {
+      background: #fff;
+      padding: 1rem 1.25rem;
+      border-radius: 1rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      max-height: 70vh;
+      overflow-y: auto;
+      line-height: 1.6;
+      color: #3B1E54;
+    }
+  </style>
 </head>
 <body>
-    <h2>Your AI Skincare Recommendation:</h2>
-    <p>{{ recommendations }}</p>
-
+  <h2>Your AI Skincare Recommendation:</h2>
+  <div class="recommendation-box">
+    {{ recommendations|safe }}
+  </div>
 </body>
 </html>

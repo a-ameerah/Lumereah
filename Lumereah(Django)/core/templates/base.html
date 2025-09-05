@@ -1,34 +1,13 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lumereah</title>
-    <style>
-        body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:0;padding:0}
-        .container{padding:16px;max-width:640px;margin:0 auto}
-        header{padding:12px 0;text-align:center}
-        .btn{display:inline-block;padding:10px 16px;border-radius:8px;background:#0a84ff;color:white;text-decoration:none}
-        form input, form select, form textarea{width:100%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #ddd}
-    </style>
+    <meta charset="UTF-8">
+    <title>My Site</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'core/style.css' %}">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Lumereah</h1>
-        </header>
-
-
-        {% if messages %}
-            <ul>
-                {% for message in messages %}
-                    <li>{{ message }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-
-
-        {% block content %}{% endblock %}
-    </div>
+    {% block content %}
+    {% endblock %}
 </body>
 </html>

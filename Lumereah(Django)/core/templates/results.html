@@ -1,14 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
+{% load static %}
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Skin Type</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Skin Type</title>
+  <link rel="stylesheet" href="{% static 'core/skin_type.css' %}">
 </head>
 <body>
-    <label>You have {{results}} skin!</label>
-    <a href="/skinconcerns.html/">
-    <button>Next!</button>
-    </a>
+  <div class="result-text">
+    You have {{ results }} skin!
+  </div>
+
+  <a href="/skinconcerns.html/">
+    <button class="next-btn">→</button>
+  </a>
 </body>
 </html>

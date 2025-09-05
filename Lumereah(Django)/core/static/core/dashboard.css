@@ -1,0 +1,59 @@
+/* General container */
+.dashboard-container {
+    text-align: center;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+}
+
+/* Greeting */
+.dashboard-container h2 {
+    color: #3A1C54;
+    margin-bottom: 5px;
+}
+
+.dashboard-container p.subtitle {
+    color: #3A1C54;
+    font-size: 14px;
+    margin-top: 0;
+}
+
+/* Card */
+.dashboard-card {
+    background-color: #D1B6E1;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px auto;
+    max-width: 350px;
+    text-align: left;
+    color: #3A1C54;
+}
+
+/* Buttons */
+.dashboard-buttons {
+    max-width: 350px;
+    margin: 0 auto;
+}
+
+.dashboard-buttons a {
+    display: block;
+    border-radius: 10px;
+    padding: 10px;
+    margin: 10px 0;
+    text-decoration: none;
+    text-align: center;
+    font-weight: 500;
+}
+
+/* Retake button */
+.dashboard-buttons a.retake {
+    border: 1px solid #3A1C54;
+    color: #3A1C54;
+    background-color: transparent;
+}
+
+/* Recommendations button */
+.dashboard-buttons a.recommend {
+    background-color: #3A1C54;
+    color: white;
+}
+
