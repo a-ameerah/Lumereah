@@ -18,6 +18,5 @@ __pycache__/
 *.bin
 *.pickle
 *.pkl
-*.csv
 chroma_storage/
 
