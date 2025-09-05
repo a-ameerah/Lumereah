@@ -79,6 +79,13 @@ def dashboard(request):
 api_key = os.getenv("OPENAI_API_KEY")
 
 client = OpenAI(api_key=api_key)
+
+def get_openai_client():
+    api_key = os.environ.get('OPENAI_API_KEY')
+    if api_key:
+        return OpenAI(api_key=api_key)
+    return None
+
 load_dotenv() 
 
 
@@ -230,6 +237,7 @@ collection.add(
 )
 
 def my_recommendations(request):
+    client = get_openai_client()
     skin_type = request.session.get('result')  
     skin_concerns_list = request.session.get('skinconcerns_list', [])
     age = request.session.get('age')
