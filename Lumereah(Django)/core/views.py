@@ -23,6 +23,7 @@ from django.contrib import messages
 from .forms import SignUpForm
 from django.utils.safestring import mark_safe
 import re
+from pathlib import Path
 
 
 # Create your views here.
@@ -188,7 +189,8 @@ def load_documents_from_directory(directory_path):
                     
     return documents
 
-directory_path = r"C:\Users\AMEERAH ADISA\Desktop\product_recommendations"
+BASE_DIR = Path(__file__).resolve().parent.parent
+directory_path = os.path.join(BASE_DIR, 'product_recommendations')
 documents_1 = load_documents_from_directory(directory_path)
 
 
