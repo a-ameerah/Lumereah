@@ -220,29 +220,56 @@ for doc in documents_1:
 
 
 
-chroma_client = chromadb.PersistentClient(path="chroma_storage")
 
-try:
-    chroma_client.delete_collection(name="product_list")
-    print("Deleted existing product_list collection")
-except NotFoundError:
-    print("Collection product_list does not exist, skipping deletion")
-except Exception as e:
-    print(f"Unexpected error when deleting collection: {e}")
-
-collection_name = "product_list"
-collection = chroma_client.get_or_create_collection(
-    name=collection_name, 
-    embedding_function=hf_ef
-)
-
-collection.add(
-    documents=[doc["text"] for doc in chunked_documents],
-    ids=[doc["id"] for doc in chunked_documents]
-)
-
+def get_chroma_collection():
+    try:
+        hf_ef = embedding_functions.OpenAIEmbeddingFunction(
+            api_key=os.getenv("OPENAI_API_KEY"),
+            model_name="text-embedding-3-small"
+        )
+        chroma_client = chromadb.PersistentClient(path="chroma_storage")
+        collection = chroma_client.get_collection(name="product_list", embedding_function=hf_ef)
+        return collection
+    except NotFoundError:
+        # If collection doesn't exist, create it
+        collection = chroma_client.create_collection(name="product_list", embedding_function=hf_ef)
+        
+        # Load and add documents to the collection
+        BASE_DIR = Path(__file__).resolve().parent.parent
+        directory_path = os.path.join(BASE_DIR, 'product_recommendations')
+        documents_1 = load_documents_from_directory(directory_path)
+        
+        # Chunk documents
+        chunked_documents = []
+        for doc in documents_1:
+            chunks = split_text(doc["text"]) 
+            for i, chunk in enumerate(chunks):
+                chunked_documents.append({
+                    "id": f"{doc['id']}_chunk{i+1}",
+                    "text": chunk
+                })
+        
+        # Add documents to collection
+        if chunked_documents:
+            collection.add(
+                documents=[doc["text"] for doc in chunked_documents],
+                ids=[doc["id"] for doc in chunked_documents]
+            )
+            print(f"Added {len(chunked_documents)} documents to collection")
+        
+        return collection
+    except Exception as e:
+        print(f"Error getting Chroma collection: {e}")
+        return None
 
 def my_recommendations(request):
+     # Get the collection
+    collection = get_chroma_collection()
+    if collection is None:
+        return render(request, "error.html", {
+            "error_message": "Product database is not available. Please try again later."
+        })
+    
     api_key = os.environ.get('OPENAI_API_KEY')
     client = OpenAI(api_key=api_key)
             
