@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: lumereah
+    env: python
+    plan: free
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn skincare_project.wsgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.8
+      - key: SECRET_KEY
+        generateValue: true
+      - key: WEB_CONCURRENCY
+        value: 4
