@@ -12,7 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-13nvo$49woj1t39we2w6x13!8wq_)q(5i^l^wdqoho@-3q-(sn')
 
-DEBUG = False
+DEBUG = True
 
 
 # Allow Render.com domain
