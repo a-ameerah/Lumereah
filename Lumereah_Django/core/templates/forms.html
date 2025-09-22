@@ -282,11 +282,11 @@
                             <span class="option-label">Fine, unless it's very oily</span>
                         </label>
                         <label class="option">
-                            <input type="radio" name="q4" value="极">
+                            <input type="radio" name="q4" value="B">
                             <span class="option-label">Never absorbs enough, feels tight</span>
                         </label>
                         <label class="option">
-                            <input type="radio" name="q4"极="C">
+                            <input type="radio" name="q4" value="C">
                             <span class="option-label">Some parts are okay, others get irritated</span>
                         </label>
                         <label class="option">
@@ -394,7 +394,7 @@
                     option.classList.remove('selected');
                 });
                 
-                if (selected极) {
+                if (selectedOption) {
                     selectedOption.closest('.option').classList.add('selected');
                 }
             }
